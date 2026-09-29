@@ -18,7 +18,10 @@ server, no account and no tracking; everything stays on the phone.
 ## Install
 
 1. Open the [Actions tab](https://github.com/tiltbob/strawberry/actions), pick the latest
-   successful run and download the `work-schedule-debug-apk` artifact. Unzip it.
+   successful run and download the `work-schedule-debug-apk` artifact. Unzip it. You need to be
+   signed in to GitHub to download it. GitHub deletes artifacts after 90 days; if the latest one
+   has expired, the repository owner can build a fresh one under Actions > Android CI > Run
+   workflow, or you can build the APK yourself (see [Building locally](#building-locally)).
 2. Install the APK on the phone, for example with
    `adb install --user current -r app-debug.apk` (or copy it over and open it). Without
    `--user`, adb installs the app for every user on the phone, including the work profile, so
@@ -57,6 +60,12 @@ adb shell dumpsys package io.github.tiltbob.strawberry | grep MODIFY_QUIET_MODE
 ```
 
 and look for `granted=true`.
+
+Afterwards you can turn USB debugging (and Developer options) off again: the permission stays
+granted, also when you install updates over the app. Some employers' device policies and some
+banking apps object to USB debugging being on, so turn it off if you do not need it. You need it
+again only to grant the permission after an uninstall, or when you update with `adb install`
+instead of opening the new APK on the phone.
 
 Optional but recommended: exempt the app from battery optimization so the schedule runs on
 time even on phones that delay alarms. You can also do this from the app.

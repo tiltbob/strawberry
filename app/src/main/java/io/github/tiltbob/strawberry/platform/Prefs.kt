@@ -2,6 +2,7 @@ package io.github.tiltbob.strawberry.platform
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.provider.Settings
 import androidx.core.content.edit
 import io.github.tiltbob.strawberry.core.ApplyResult
 import io.github.tiltbob.strawberry.core.Reason
@@ -107,10 +108,21 @@ class Prefs(context: Context) : ScheduleStore {
         prefs.edit(commit = true) { putStringSet(LEARNED, (learned + serial).map { it.toString() }.toSet()) }
     }
 
-    /** The phone's boot count when BOOT_COMPLETED last arrived, or -1 if unknown. */
+    /**
+     * The phone's boot count when BOOT_COMPLETED last arrived or the app was first opened, or -1
+     * if unknown.
+     */
     var lastBootCount: Int
         get() = prefs.getInt(BOOT_COUNT, -1)
         set(value) = prefs.edit(commit = true) { putInt(BOOT_COUNT, value) }
+
+    /**
+     * Stores [count] only if no boot count is stored yet. Never overwrites: if the app is opened
+     * right after a reboot, before BOOT_COMPLETED is handled, that reboot must still count.
+     */
+    fun rememberBootCountIfUnknown(count: Int) {
+        if (count != -1 && lastBootCount == -1) lastBootCount = count
+    }
 
     /** Whether the app has asked for the notification permission before. */
     var askedForNotifications: Boolean
@@ -178,3 +190,7 @@ class Prefs(context: Context) : ScheduleStore {
         }
     }
 }
+
+/** How often the phone has booted, or -1 if that cannot be read. */
+fun bootCount(context: Context): Int =
+    Settings.Global.getInt(context.contentResolver, Settings.Global.BOOT_COUNT, -1)

@@ -1,5 +1,6 @@
 package io.github.tiltbob.strawberry
 
+import android.provider.Settings
 import androidx.compose.runtime.MutableState
 import io.github.tiltbob.strawberry.core.Reason
 import io.github.tiltbob.strawberry.platform.Prefs
@@ -26,6 +27,32 @@ class MainActivityTest {
             idleEverything()
             assertEquals(Reason.APP_OPENED, prefs.status?.lastReason)
         }
+    }
+
+    @Test
+    fun confirmingAnUnchangedScheduleDoesNotForceIt() {
+        prefs.schedule = Schedule(enabled = true)
+        Robolectric.buildActivity(MainActivity::class.java).use { controller ->
+            val activity = controller.setup().get()
+            idleEverything()
+            prefs.lastDesiredWorkOn = true
+
+            activity.onScheduleChange(shownSchedule(activity))
+            idleEverything()
+
+            assertEquals(Reason.APP_OPENED, prefs.status?.lastReason)
+            assertEquals(true, prefs.lastDesiredWorkOn)
+        }
+    }
+
+    @Test
+    fun openingTheAppRemembersTheBootCount() {
+        Settings.Global.putInt(RuntimeEnvironment.getApplication().contentResolver, Settings.Global.BOOT_COUNT, 3)
+        Robolectric.buildActivity(MainActivity::class.java).use { controller ->
+            controller.setup()
+            idleEverything()
+        }
+        assertEquals(3, prefs.lastBootCount)
     }
 
     @Test

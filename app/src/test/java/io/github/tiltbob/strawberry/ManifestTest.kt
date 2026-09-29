@@ -68,5 +68,10 @@ class ManifestTest {
         assertFalse(unpause.exported)
         assertTrue(unpause.flags and android.content.pm.ActivityInfo.FLAG_EXCLUDE_FROM_RECENTS != 0)
         assertTrue(unpause.flags and android.content.pm.ActivityInfo.FLAG_NO_HISTORY != 0)
+
+        // Libraries must not add exported activities (ui-tooling's PreviewActivity is removed).
+        val exported = packageManager.getPackageInfo(app.packageName, PackageManager.GET_ACTIVITIES)
+            .activities.orEmpty().filter { it.exported }.map { it.name }
+        assertEquals(listOf(MainActivity::class.java.name), exported)
     }
 }

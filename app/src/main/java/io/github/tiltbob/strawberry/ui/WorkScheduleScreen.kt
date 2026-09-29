@@ -169,9 +169,11 @@ private fun StatusCard(state: ScreenState, formats: Formats, actions: ScreenActi
         }
         Text(nextChangeText(state, formats))
 
+        // With the schedule off the last result is old news, and nothing replaces it until the
+        // schedule is on again.
         val status = state.status
         val result = status?.lastApplyResult
-        if (status?.lastApplyAt != null && result != null) {
+        if (schedule.enabled && status?.lastApplyAt != null && result != null) {
             Text(
                 text = stringResource(
                     R.string.status_last_applied,
@@ -196,7 +198,7 @@ private fun StatusCard(state: ScreenState, formats: Formats, actions: ScreenActi
                 color = MaterialTheme.colorScheme.error,
             )
         }
-        if (profile != null && profile.paused && result == ApplyResult.NeedsCredential) {
+        if (schedule.enabled && profile != null && profile.paused && result == ApplyResult.NeedsCredential) {
             Button(onClick = actions::onTurnOnWorkApps) {
                 Text(stringResource(R.string.status_turn_on_now))
             }
@@ -225,6 +227,9 @@ private fun StatusCard(state: ScreenState, formats: Formats, actions: ScreenActi
 private fun nextChangeText(state: ScreenState, formats: Formats): String {
     val schedule = state.schedule
     if (!schedule.enabled) return stringResource(R.string.status_schedule_off)
+    if (!state.hasQuietModePermission || state.profile !is ProfileState.Selected) {
+        return stringResource(R.string.status_setup_needed)
+    }
     val workOn = (state.profile as? ProfileState.Selected)?.profile?.paused?.not()
     val next = schedule.nextChange(state.now, state.zone, workOn)
         ?: return stringResource(R.string.status_no_changes)
@@ -492,7 +497,8 @@ private fun ScheduleCard(schedule: Schedule, formats: Formats, onChange: (Schedu
             onDismiss = { editing = null },
             onConfirm = { time ->
                 editing = null
-                onChange(if (field == TimeField.START) schedule.copy(start = time) else schedule.copy(end = time))
+                val updated = if (field == TimeField.START) schedule.copy(start = time) else schedule.copy(end = time)
+                if (updated != schedule) onChange(updated)
             },
         )
     }

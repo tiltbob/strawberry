@@ -101,4 +101,14 @@ class PrefsTest {
         prefs.askedForNotifications = true
         assertTrue(Prefs(RuntimeEnvironment.getApplication()).askedForNotifications)
     }
+
+    @Test
+    fun bootCountIsOnlyRememberedWhenUnknown() {
+        prefs.rememberBootCountIfUnknown(-1)
+        assertEquals(-1, prefs.lastBootCount)
+        prefs.rememberBootCountIfUnknown(3)
+        assertEquals(3, prefs.lastBootCount)
+        prefs.rememberBootCountIfUnknown(4)
+        assertEquals(3, prefs.lastBootCount)
+    }
 }

@@ -4,9 +4,9 @@ import android.app.AlarmManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.provider.Settings
 import io.github.tiltbob.strawberry.core.Reason
 import io.github.tiltbob.strawberry.platform.Prefs
+import io.github.tiltbob.strawberry.platform.bootCount
 import io.github.tiltbob.strawberry.platform.createReconciler
 import io.github.tiltbob.strawberry.platform.runInBackground
 import java.time.DateTimeException
@@ -34,11 +34,13 @@ class SystemEventReceiver : BroadcastReceiver() {
     }
 
     /**
-     * Android 15+ also sends BOOT_COMPLETED when the app starts after a force stop. Only a real
-     * reboot changes the boot count. If the count cannot be read, assume a reboot.
+     * BOOT_COMPLETED also arrives without a reboot (see [Reason.RESTARTED]). Only a reboot (or a
+     * restart of the system itself, which also loses alarms) changes the boot count. The count is
+     * first stored when the app is opened, which never sends BOOT_COMPLETED. If the count cannot
+     * be read, assume a reboot.
      */
     private fun isNewBoot(context: Context): Boolean {
-        val count = Settings.Global.getInt(context.contentResolver, Settings.Global.BOOT_COUNT, -1)
+        val count = bootCount(context)
         val prefs = Prefs(context)
         if (count != -1 && count == prefs.lastBootCount) return false
         prefs.lastBootCount = count

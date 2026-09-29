@@ -2,6 +2,7 @@ package io.github.tiltbob.strawberry.receiver
 
 import android.content.Intent
 import android.provider.Settings
+import io.github.tiltbob.strawberry.MainActivity
 import io.github.tiltbob.strawberry.core.Reason
 import io.github.tiltbob.strawberry.idleEverything
 import io.github.tiltbob.strawberry.platform.Prefs
@@ -12,6 +13,7 @@ import org.junit.Assert.assertNotNull
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.shadows.ShadowAlarmManager
@@ -64,6 +66,23 @@ class ReceiversTest {
         // Android 15+ sends it again after a force stop; the boot count stays the same.
         assertEquals(Reason.RESTARTED, boot(3))
         assertEquals(Reason.BOOT, boot(4))
+    }
+
+    @Test
+    fun bootCompletedAfterAForceStopIsNotForcedBeforeTheFirstReboot() {
+        Settings.Global.putInt(app.contentResolver, Settings.Global.BOOT_COUNT, 3)
+        // Opening the app after install stores the boot count; that launch sends no BOOT_COMPLETED.
+        Robolectric.buildActivity(MainActivity::class.java).use { it.setup() }
+        idleEverything()
+
+        app.sendBroadcast(Intent(Intent.ACTION_BOOT_COMPLETED))
+        idleEverything()
+        assertEquals(Reason.RESTARTED, lastReason())
+
+        Settings.Global.putInt(app.contentResolver, Settings.Global.BOOT_COUNT, 4)
+        app.sendBroadcast(Intent(Intent.ACTION_BOOT_COMPLETED))
+        idleEverything()
+        assertEquals(Reason.BOOT, lastReason())
     }
 
     @Test

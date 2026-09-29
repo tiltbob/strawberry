@@ -8,6 +8,7 @@
     <string name="status_profile">Profile: %1$s</string>
     <string name="status_change_profile">Change</string>
     <string name="status_schedule_off">The schedule is off. Turn on \"Follow schedule\" below.</string>
+    <string name="status_setup_needed">Finish setup below so the schedule can take effect.</string>
     <string name="status_no_changes">Work apps stay as they are: nothing in the schedule changes them.</string>
     <string name="status_pauses">Pauses %1$s</string>
     <string name="status_turns_on">Turns on %1$s</string>
@@ -16,9 +17,9 @@
     <string name="status_turn_on_now">Turn on work apps</string>
 
     <!-- Results, used on the status card, in notifications and in toasts -->
-    <string name="result_ok">Work apps now match the schedule.</string>
+    <string name="result_ok">Work apps were changed to match the schedule.</string>
     <string name="result_already">Work apps already matched the schedule.</string>
-    <string name="result_needs_credential">Work apps need your work PIN to turn on.</string>
+    <string name="result_needs_credential">Work apps needed your work PIN to turn on.</string>
     <string name="result_no_permission">The app is not allowed to pause work apps yet. Grant the permission with adb (see Setup).</string>
     <string name="result_profile_missing">No work profile was found.</string>
     <string name="result_profile_unconfirmed">Open the app and choose which profile is your work profile.</string>

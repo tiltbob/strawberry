@@ -31,6 +31,7 @@ import io.github.tiltbob.strawberry.platform.Background
 import io.github.tiltbob.strawberry.platform.Prefs
 import io.github.tiltbob.strawberry.platform.ProfileState
 import io.github.tiltbob.strawberry.platform.WorkProfiles
+import io.github.tiltbob.strawberry.platform.bootCount
 import io.github.tiltbob.strawberry.platform.createReconciler
 import io.github.tiltbob.strawberry.schedule.Schedule
 import io.github.tiltbob.strawberry.ui.ScreenActions
@@ -101,6 +102,9 @@ class MainActivity : ComponentActivity(), ScreenActions {
         val app = applicationContext
         val editsAtStart = edits
         Background.execute {
+            // The first launch after install never sends BOOT_COMPLETED, so storing the boot
+            // count here lets a later BOOT_COMPLETED without a reboot be recognized.
+            Prefs(app).rememberBootCountIfUnknown(bootCount(app))
             if (reason != null) createReconciler(app).run(reason)
             publish(ScreenState.load(app), editsAtStart)
         }
@@ -130,8 +134,13 @@ class MainActivity : ComponentActivity(), ScreenActions {
         state = state?.copy(schedule = schedule)
         val app = applicationContext
         Background.execute {
-            Prefs(app).schedule = schedule
-            createReconciler(app).run(Reason.SCHEDULE_SAVED)
+            // Confirming a time without changing it is not an edit. Saving it would force the
+            // schedule and undo a manual pause or unpause.
+            val prefs = Prefs(app)
+            if (prefs.schedule != schedule) {
+                prefs.schedule = schedule
+                createReconciler(app).run(Reason.SCHEDULE_SAVED)
+            }
             publish(ScreenState.load(app), editsAtStart)
         }
     }
