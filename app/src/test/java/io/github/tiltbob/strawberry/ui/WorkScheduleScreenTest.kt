@@ -30,14 +30,14 @@ class WorkScheduleScreenTest {
     @Test
     fun statusNamesTheOnlyProfileWithoutOfferingToChangeIt() {
         val texts = shownTexts(ProfileState.Selected(work, alternatives = emptyList()))
-        assertTrue(texts.toString(), "Profile: Work Profile A" in texts)
+        assertTrue(texts.toString(), "Applies to: Work Profile A" in texts)
         assertFalse(texts.toString(), "Change" in texts)
     }
 
     @Test
     fun statusOffersToChangeTheProfileWhenThereAreOthers() {
         val texts = shownTexts(ProfileState.Selected(work, alternatives = listOf(other)))
-        assertTrue(texts.toString(), "Profile: Work Profile A" in texts)
+        assertTrue(texts.toString(), "Applies to: Work Profile A" in texts)
         assertTrue(texts.toString(), "Change" in texts)
     }
 

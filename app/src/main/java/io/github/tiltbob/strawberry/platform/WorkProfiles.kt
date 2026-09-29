@@ -11,6 +11,7 @@ import android.os.UserHandle
 import android.os.UserManager
 import android.util.Log
 import androidx.annotation.RequiresApi
+import io.github.tiltbob.strawberry.R
 import io.github.tiltbob.strawberry.core.QuietModeController
 import io.github.tiltbob.strawberry.core.TargetLookup
 import io.github.tiltbob.strawberry.core.WorkProfileTarget
@@ -36,7 +37,7 @@ data class ProfileCandidate(
     val serial: Long,
     val kind: ProfileKind,
     val paused: Boolean,
-    /** For example "Work Work Schedule", as the system badges labels for this profile. */
+    /** For example "Work profile". */
     val label: String,
 )
 
@@ -81,7 +82,7 @@ class WorkProfiles(context: Context, private val prefs: Prefs = Prefs(context)) 
         // Hidden API, so only read when LauncherApps cannot tell (always on Android 11 to 14).
         val managedByUserInfo by lazy { readManagedFlags() }
         val learned = prefs.learnedManagedSerials
-        val appLabel = app.applicationInfo.loadLabel(app.packageManager)
+        val baseLabel = app.getString(R.string.profile_badge_base)
         return others.mapNotNull { handle ->
             try {
                 val serial = userManager.getSerialNumberForUser(handle)
@@ -91,7 +92,7 @@ class WorkProfiles(context: Context, private val prefs: Prefs = Prefs(context)) 
                     serial = serial,
                     kind = kind,
                     paused = userManager.isQuietModeEnabled(handle),
-                    label = app.packageManager.getUserBadgedLabel(appLabel, handle).toString(),
+                    label = labelFor(handle, serial, baseLabel),
                 )
             } catch (e: RuntimeException) {
                 // One odd profile must not break the others.
@@ -125,6 +126,19 @@ class WorkProfiles(context: Context, private val prefs: Prefs = Prefs(context)) 
             managed.size > 1 -> ProfileState.NeedsChoice(managed)
             usable.isNotEmpty() -> ProfileState.NeedsConfirmation(usable)
             else -> ProfileState.None
+        }
+    }
+
+    /**
+     * The system's name for the profile, such as "Work profile": the word "profile" badged the way
+     * the system badges app labels for that profile.
+     */
+    private fun labelFor(handle: UserHandle, serial: Long, base: String): String {
+        val badged = app.packageManager.getUserBadgedLabel(base, handle).toString()
+        return if (badged == base) {
+            app.getString(R.string.profile_unnamed, serial)
+        } else {
+            badged.replaceFirstChar { it.titlecase() }
         }
     }
 

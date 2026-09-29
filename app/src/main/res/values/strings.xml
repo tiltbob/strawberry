@@ -5,7 +5,7 @@
     <string name="status_work_on">Work apps on</string>
     <string name="status_work_paused">Work apps paused</string>
     <string name="status_work_unknown">Work profile not set up</string>
-    <string name="status_profile">Profile: %1$s</string>
+    <string name="status_profile">Applies to: %1$s</string>
     <string name="status_change_profile">Change</string>
     <string name="status_schedule_off">The schedule is off. Turn on \"Follow schedule\" below.</string>
     <string name="status_setup_needed">Finish setup below so the schedule can take effect.</string>
@@ -59,6 +59,9 @@
     <string name="setup_identify_title">Identify your work profile</string>
     <string name="setup_identify_why">Android did not say which profile is the work profile. With this screen open, turn \"Work apps\" off and back on once in Quick Settings so Android identifies the work profile. The schedule is applied the next time you open the app.</string>
     <string name="setup_identify_manual">Or choose it yourself:</string>
+    <!-- Badged by the system per profile, for example "Work profile". -->
+    <string name="profile_badge_base">profile</string>
+    <string name="profile_unnamed">Profile %1$d</string>
     <string name="profile_row_detail">User serial %1$d · %2$s</string>
     <string name="profile_paused">paused</string>
     <string name="profile_on">on</string>
