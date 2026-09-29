@@ -97,6 +97,49 @@ class ReconcilerTest {
     }
 
     @Test
+    fun lateAlarmIsEvaluatedWhenItArrives() {
+        // An inexact 09:00 alarm that only arrives after the window has ended.
+        store.lastDesiredWorkOn = false
+        profile.paused = true
+        now = at("2026-10-05T18:30")
+
+        reconciler.run(Reason.ALARM, scheduledAt = monday0900)
+
+        assertTrue(profile.requests.isEmpty())
+        assertEquals(tuesday0900, alarms.boundary)
+    }
+
+    @Test
+    fun boundariesMissedInPairsAreApplied() {
+        // Friday 10:00 armed 18:00; the user paused by hand; the alarms were then lost, so
+        // Friday 18:00 and Monday 09:00 both passed without a run.
+        store.lastDesiredWorkOn = true
+        store.status = RunStatus(at("2026-10-02T10:00"), Reason.ALARM, nextAlarmAt = at("2026-10-02T18:00"))
+        profile.paused = true
+        now = at("2026-10-05T10:00")
+
+        reconciler.run(Reason.APP_OPENED)
+
+        assertEquals(listOf(false), profile.requests)
+        assertEquals(true, store.lastDesiredWorkOn)
+        assertEquals(monday1800, alarms.boundary)
+    }
+
+    @Test
+    fun staleAlarmAfterAnotherRunKeepsManualChange() {
+        store.lastDesiredWorkOn = false
+        now = at("2026-10-05T10:00")
+        reconciler.run(Reason.APP_OPENED)
+        profile.paused = true
+        now = at("2026-10-05T11:00")
+
+        reconciler.run(Reason.ALARM, scheduledAt = monday0900)
+
+        assertEquals(listOf(false), profile.requests)
+        assertTrue(profile.paused)
+    }
+
+    @Test
     fun openingTheAppKeepsManualChange() {
         store.lastDesiredWorkOn = true
         profile.paused = true
@@ -188,12 +231,25 @@ class ReconcilerTest {
     @Test
     fun retryIsForced() {
         store.lastDesiredWorkOn = true
+        notifier.needsCredential = true
         now = at("2026-10-05T10:01")
 
         reconciler.run(Reason.RETRY)
 
         assertEquals(listOf(false), profile.requests)
         assertFalse(notifier.needsCredential)
+    }
+
+    @Test
+    fun retryThatStillNeedsCredentialDoesNotRetryAgain() {
+        profile.unpauseAllowed = false
+        now = at("2026-10-05T10:01")
+
+        reconciler.run(Reason.RETRY)
+
+        assertTrue(notifier.needsCredential)
+        assertNull(alarms.retry)
+        assertEquals(true, store.lastDesiredWorkOn)
     }
 
     @Test
@@ -213,6 +269,7 @@ class ReconcilerTest {
     fun alreadyInDesiredStateSkipsTheCall() {
         store.lastDesiredWorkOn = false
         profile.paused = false
+        notifier.needsCredential = true
 
         reconciler.run(Reason.ALARM, scheduledAt = monday0900)
 
@@ -268,6 +325,7 @@ class ReconcilerTest {
 
         assertEquals(ApplyResult.ProfileMissing, store.status?.lastApplyResult)
         assertNull(store.lastDesiredWorkOn)
+        assertEquals(monday1800, alarms.boundary)
     }
 
     @Test
@@ -279,6 +337,34 @@ class ReconcilerTest {
         assertEquals(ApplyResult.Error("User 10 is not a profile"), store.status?.lastApplyResult)
         assertEquals(listOf<ApplyResult>(ApplyResult.Error("User 10 is not a profile")), notifier.problems)
         assertNull(store.lastDesiredWorkOn)
+        assertEquals(monday1800, alarms.boundary)
+    }
+
+    @Test
+    fun unexpectedExceptionIsAnErrorAndTheNextBoundaryIsStillArmed() {
+        store.lastDesiredWorkOn = false
+        profile.failure = IllegalStateException("boom")
+
+        reconciler.run(Reason.ALARM, scheduledAt = monday0900)
+
+        assertEquals(ApplyResult.Error("boom"), store.status?.lastApplyResult)
+        assertNull(store.lastDesiredWorkOn)
+        assertEquals(listOf<ApplyResult>(ApplyResult.Error("boom")), notifier.problems)
+        assertEquals(monday1800, alarms.boundary)
+    }
+
+    @Test
+    fun refusedPauseIsNotDefinitive() {
+        store.lastDesiredWorkOn = true
+        profile.paused = false
+        profile.pauseAllowed = false
+        now = monday1800
+
+        reconciler.run(Reason.ALARM, scheduledAt = monday1800)
+
+        assertEquals(ApplyResult.PauseRefused, store.status?.lastApplyResult)
+        assertNull(store.lastDesiredWorkOn)
+        assertEquals(listOf<ApplyResult>(ApplyResult.PauseRefused), notifier.problems)
     }
 
     @Test
@@ -342,6 +428,7 @@ class ReconcilerTest {
 
     private class FakeProfile(var paused: Boolean) : WorkProfileTarget {
         var unpauseAllowed = true
+        var pauseAllowed = true
         var failure: RuntimeException? = null
         val requests = mutableListOf<Boolean>()
 
@@ -351,6 +438,7 @@ class ReconcilerTest {
             failure?.let { throw it }
             requests += paused
             if (!paused && !unpauseAllowed) return false
+            if (paused && !pauseAllowed) return false
             this.paused = paused
             return true
         }

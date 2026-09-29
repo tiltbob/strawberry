@@ -42,10 +42,11 @@ class Formats(private val context: Context) {
     /** For example "Mon–Fri", "Mon, Wed, Fri" or "every day". */
     fun days(days: Set<DayOfWeek>): String {
         if (days.size == 7) return context.getString(R.string.days_every_day)
-        return consecutiveRuns(days, firstDayOfWeek).joinToString(", ") { run ->
+        val separator = context.getString(R.string.days_separator)
+        return consecutiveRuns(days, firstDayOfWeek).joinToString(separator) { run ->
             when (run.size) {
                 1 -> shortDay(run.single())
-                2 -> "${shortDay(run.first())}, ${shortDay(run.last())}"
+                2 -> shortDay(run.first()) + separator + shortDay(run.last())
                 else -> context.getString(R.string.days_range, shortDay(run.first()), shortDay(run.last()))
             }
         }
@@ -54,6 +55,9 @@ class Formats(private val context: Context) {
     /** For example "Work apps on Mon–Fri 9:00 AM–6:00 PM. Paused at all other times." */
     fun summary(schedule: Schedule): String {
         if (schedule.days.isEmpty()) return context.getString(R.string.summary_no_days)
+        if (schedule.days.size == 7 && schedule.start == schedule.end) {
+            return context.getString(R.string.summary_always_on)
+        }
         val days = days(schedule.days)
         val start = time(schedule.start)
         return when {

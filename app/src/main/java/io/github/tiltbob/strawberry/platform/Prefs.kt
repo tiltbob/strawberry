@@ -14,7 +14,8 @@ import java.time.LocalTime
 
 /**
  * Everything the app remembers, in one SharedPreferences file. Writes use commit() because they
- * happen on the background thread, often right before a broadcast finishes.
+ * happen on the background thread, often right before a broadcast finishes. The one exception is
+ * [askedForNotifications], which the screen writes on the main thread.
  */
 class Prefs(context: Context) : ScheduleStore {
     private val prefs: SharedPreferences =
@@ -81,9 +82,14 @@ class Prefs(context: Context) : ScheduleStore {
     /** True if the user explicitly picked [selectedProfileSerial] (needed for unidentified ones). */
     val selectedProfileConfirmed: Boolean get() = prefs.getBoolean(PROFILE_CONFIRMED, false)
 
-    fun selectProfile(serial: Long, confirmedByUser: Boolean) = prefs.edit(commit = true) {
-        putLong(PROFILE_SERIAL, serial)
-        putBoolean(PROFILE_CONFIRMED, confirmedByUser)
+    fun selectProfile(serial: Long, confirmedByUser: Boolean) {
+        val changed = serial != selectedProfileSerial
+        prefs.edit(commit = true) {
+            putLong(PROFILE_SERIAL, serial)
+            putBoolean(PROFILE_CONFIRMED, confirmedByUser)
+            // The schedule has not been applied to this profile yet, so the next run applies it.
+            if (changed) remove(LAST_DESIRED)
+        }
     }
 
     fun clearProfile() = prefs.edit(commit = true) {
@@ -101,6 +107,11 @@ class Prefs(context: Context) : ScheduleStore {
         prefs.edit(commit = true) { putStringSet(LEARNED, (learned + serial).map { it.toString() }.toSet()) }
     }
 
+    /** Whether the app has asked for the notification permission before. */
+    var askedForNotifications: Boolean
+        get() = prefs.getBoolean(ASKED_NOTIFICATIONS, false)
+        set(value) = prefs.edit { putBoolean(ASKED_NOTIFICATIONS, value) }
+
     private companion object {
         const val ENABLED = "schedule_enabled"
         const val START = "schedule_start_minute"
@@ -110,6 +121,7 @@ class Prefs(context: Context) : ScheduleStore {
         const val PROFILE_SERIAL = "profile_serial"
         const val PROFILE_CONFIRMED = "profile_confirmed"
         const val LEARNED = "learned_managed_serials"
+        const val ASKED_NOTIFICATIONS = "asked_for_notifications"
         const val STATUS_RUN_AT = "status_run_at"
         const val STATUS_REASON = "status_reason"
         const val STATUS_APPLY_AT = "status_apply_at"
@@ -136,6 +148,7 @@ class Prefs(context: Context) : ScheduleStore {
             ApplyResult.NoPermission -> "NO_PERMISSION"
             ApplyResult.ProfileMissing -> "PROFILE_MISSING"
             ApplyResult.ProfileUnconfirmed -> "PROFILE_UNCONFIRMED"
+            ApplyResult.PauseRefused -> "PAUSE_REFUSED"
             is ApplyResult.Error -> "ERROR"
         }
 
@@ -146,6 +159,7 @@ class Prefs(context: Context) : ScheduleStore {
             "NO_PERMISSION" -> ApplyResult.NoPermission
             "PROFILE_MISSING" -> ApplyResult.ProfileMissing
             "PROFILE_UNCONFIRMED" -> ApplyResult.ProfileUnconfirmed
+            "PAUSE_REFUSED" -> ApplyResult.PauseRefused
             "ERROR" -> ApplyResult.Error(message.orEmpty())
             else -> null
         }

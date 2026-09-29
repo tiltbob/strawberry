@@ -22,7 +22,9 @@
     <string name="result_no_permission">The app is not allowed to pause work apps yet. Grant the permission with adb (see Setup).</string>
     <string name="result_profile_missing">No work profile was found.</string>
     <string name="result_profile_unconfirmed">Open the app and choose which profile is your work profile.</string>
+    <string name="result_pause_refused">The system refused to pause work apps.</string>
     <string name="result_error">Something went wrong: %1$s</string>
+    <string name="result_error_unknown">Something went wrong.</string>
     <string name="unpause_failed">Could not turn on work apps. Open Work Schedule to check the setup.</string>
 
     <!-- Notifications -->
@@ -52,8 +54,9 @@
     <string name="setup_scan_again">Scan again</string>
     <string name="setup_choose_title">Choose your work profile</string>
     <string name="setup_choose_why">More than one work profile was found (Secure Folder and similar features can look like one). Pick the one your employer manages.</string>
+    <string name="setup_choose_gone_why">The work profile you chose is no longer available or could not be checked. Pick the one to use.</string>
     <string name="setup_identify_title">Identify your work profile</string>
-    <string name="setup_identify_why">Android did not say which profile is the work profile. With this screen open, turn \"Work apps\" off and on once in Quick Settings, and it will be detected.</string>
+    <string name="setup_identify_why">Android did not say which profile is the work profile. With this screen open, turn \"Work apps\" off and back on once in Quick Settings so Android identifies the work profile. The schedule is applied the next time you open the app.</string>
     <string name="setup_identify_manual">Or choose it yourself:</string>
     <string name="profile_row_detail">User serial %1$d · %2$s</string>
     <string name="profile_paused">paused</string>
@@ -69,7 +72,7 @@
     <string name="setup_exact_title">Allow alarms and reminders</string>
     <string name="setup_exact_why">Without exact alarms, work apps can pause or turn on up to an hour late.</string>
     <string name="setup_unused_title">Keep the app active</string>
-    <string name="setup_unused_why">Android pauses apps that are not opened for a few months, which cancels the schedule. Turn off \"Pause app activity if unused\".</string>
+    <string name="setup_unused_why">Android pauses apps that are not opened for a few months, which cancels the schedule. Turn off \"Pause app activity if unused\" (on Android 12: \"Remove permissions and free up space\").</string>
     <string name="setup_battery_title">Unrestricted battery use</string>
     <string name="setup_battery_why">Some phones delay or drop alarms to save battery. Allowing unrestricted use makes the schedule reliable. From a computer you can also run:</string>
 
@@ -87,9 +90,11 @@
 
     <string name="days_every_day">every day</string>
     <string name="days_range">%1$s–%2$s</string>
+    <string name="days_separator">", "</string>
     <string name="summary">Work apps on %1$s %2$s–%3$s. Paused at all other times.</string>
     <string name="summary_overnight">Work apps on %1$s from %2$s until %3$s the next day. Paused at all other times.</string>
     <string name="summary_24h">Work apps on %1$s from %2$s for 24 hours. Paused at all other times.</string>
+    <string name="summary_always_on">Work apps always on.</string>
     <string name="summary_no_days">No days selected, so work apps stay paused.</string>
 
     <string name="moment_today">today at %1$s</string>

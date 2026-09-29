@@ -5,6 +5,8 @@ import io.github.tiltbob.strawberry.core.Reason
 import io.github.tiltbob.strawberry.core.RunStatus
 import io.github.tiltbob.strawberry.schedule.Schedule
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Assert.assertNull
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -50,7 +52,8 @@ class PrefsTest {
     fun statusRoundTrips() {
         val results = listOf(
             ApplyResult.Ok, ApplyResult.Already, ApplyResult.NeedsCredential, ApplyResult.NoPermission,
-            ApplyResult.ProfileMissing, ApplyResult.ProfileUnconfirmed, ApplyResult.Error("boom"),
+            ApplyResult.ProfileMissing, ApplyResult.ProfileUnconfirmed, ApplyResult.PauseRefused,
+            ApplyResult.Error("boom"),
         )
         for (result in results) {
             val status = RunStatus(
@@ -77,5 +80,25 @@ class PrefsTest {
         prefs.clearProfile()
         assertNull(prefs.selectedProfileSerial)
         assertEquals(false, prefs.selectedProfileConfirmed)
+    }
+
+    @Test
+    fun choosingAnotherProfileForgetsTheAppliedState() {
+        prefs.selectProfile(1, confirmedByUser = false)
+        prefs.lastDesiredWorkOn = true
+
+        // Confirming the same profile keeps it.
+        prefs.selectProfile(1, confirmedByUser = true)
+        assertEquals(true, prefs.lastDesiredWorkOn)
+
+        prefs.selectProfile(2, confirmedByUser = true)
+        assertNull(prefs.lastDesiredWorkOn)
+    }
+
+    @Test
+    fun remembersAskingForNotifications() {
+        assertFalse(prefs.askedForNotifications)
+        prefs.askedForNotifications = true
+        assertTrue(Prefs(RuntimeEnvironment.getApplication()).askedForNotifications)
     }
 }

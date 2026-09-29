@@ -33,6 +33,7 @@ import androidx.compose.material3.TimePickerDialog
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -58,6 +59,8 @@ import io.github.tiltbob.strawberry.platform.describeResult
 import io.github.tiltbob.strawberry.schedule.Schedule
 import io.github.tiltbob.strawberry.schedule.weekStartingOn
 import io.github.tiltbob.strawberry.ui.theme.WorkScheduleTheme
+import kotlinx.coroutines.delay
+import java.time.Duration
 import java.time.Instant
 import java.time.LocalTime
 import java.time.ZoneId
@@ -67,6 +70,9 @@ interface ScreenActions {
     fun onScheduleChange(schedule: Schedule) {}
     fun onChooseProfile(serial: Long) {}
     fun onRescan() {}
+
+    /** Reloads what the screen shows without applying the schedule. */
+    fun onRefresh() {}
     fun onCopy(text: String) {}
     fun onAllowNotifications() {}
     fun onOpenExactAlarmSettings() {}
@@ -90,6 +96,11 @@ fun WorkScheduleScreen(state: ScreenState?, actions: ScreenActions) {
         val context = LocalContext.current
         // Recreated on every refresh so a changed 12/24 hour setting shows up on resume.
         val formats = remember(context, state.now) { Formats(context) }
+        // Texts such as "Pauses today at 6:00 PM" go stale once that moment or midnight passes.
+        LaunchedEffect(state.now, state.zone, state.schedule) {
+            delay(Duration.between(Instant.now(), staleAt(state)).toMillis().coerceAtLeast(0) + 1_000)
+            actions.onRefresh()
+        }
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -103,6 +114,13 @@ fun WorkScheduleScreen(state: ScreenState?, actions: ScreenActions) {
             ScheduleCard(state.schedule, formats, actions::onScheduleChange)
         }
     }
+}
+
+/** When the screen's texts need reloading: at the next change or the next midnight. */
+private fun staleAt(state: ScreenState): Instant {
+    val midnight = state.now.atZone(state.zone).toLocalDate().plusDays(1).atStartOfDay(state.zone).toInstant()
+    val next = if (state.schedule.enabled) state.schedule.nextTransition(state.now, state.zone) else null
+    return if (next != null && next < midnight) next else midnight
 }
 
 @Composable
@@ -334,7 +352,10 @@ private fun ProfileStep(profile: ProfileState, actions: ScreenActions) {
         ProfileState.None -> SetupStep(R.string.setup_no_profile_title, R.string.setup_no_profile_why) {
             OutlinedButton(onClick = actions::onRescan) { Text(stringResource(R.string.setup_scan_again)) }
         }
-        is ProfileState.NeedsChoice -> SetupStep(R.string.setup_choose_title, R.string.setup_choose_why) {
+        is ProfileState.NeedsChoice -> SetupStep(
+            title = R.string.setup_choose_title,
+            why = if (profile.chosenIsGone) R.string.setup_choose_gone_why else R.string.setup_choose_why,
+        ) {
             ProfileChoices(profile.candidates, actions::onChooseProfile)
         }
         is ProfileState.NeedsConfirmation ->

@@ -60,12 +60,14 @@ data class ScreenState(
             )
         }
 
-        /** Whether Android may hibernate the app (and drop its alarms) when it is not opened. */
+        /**
+         * Whether Android 12+ may hibernate the app (force-stop it, dropping its alarms) when it is
+         * not opened. On Android 11 the same setting only resets runtime permissions, and this app
+         * has none there, so it does not matter.
+         */
         private fun unusedAppRestrictionsOn(context: Context): Boolean = try {
-            val status = PackageManagerCompat.getUnusedAppRestrictionsStatus(context).get(2, TimeUnit.SECONDS)
-            status == UnusedAppRestrictionsConstants.API_30_BACKPORT ||
-                status == UnusedAppRestrictionsConstants.API_30 ||
-                status == UnusedAppRestrictionsConstants.API_31
+            PackageManagerCompat.getUnusedAppRestrictionsStatus(context).get(2, TimeUnit.SECONDS) ==
+                UnusedAppRestrictionsConstants.API_31
         } catch (e: Exception) {
             Log.w("ScreenState", "Could not read unused app restrictions", e)
             false

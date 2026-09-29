@@ -41,9 +41,6 @@ import io.github.tiltbob.strawberry.ui.theme.WorkScheduleTheme
 class MainActivity : ComponentActivity(), ScreenActions {
     private var state by mutableStateOf<ScreenState?>(null)
 
-    /** The system asks only once or twice; after that only the settings screen can allow it. */
-    private var requestedNotifications = false
-
     private val requestNotifications =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { refresh() }
     private val openSettings =
@@ -52,6 +49,8 @@ class MainActivity : ComponentActivity(), ScreenActions {
     /**
      * The system sends these only for managed profiles and only to receivers registered at
      * runtime, so while the screen is visible they both refresh it and identify the work profile.
+     * They do not apply the schedule: the user may be in the middle of toggling "Work apps" to
+     * identify the profile, and the next reconcile applies it once they are done.
      */
     private val profileReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -59,7 +58,6 @@ class MainActivity : ComponentActivity(), ScreenActions {
             val app = context.applicationContext
             Background.execute {
                 if (user != null) WorkProfiles(app).learnManaged(user)
-                createReconciler(app).run(Reason.APP_OPENED)
                 publish(ScreenState.load(app))
             }
         }
@@ -107,7 +105,11 @@ class MainActivity : ComponentActivity(), ScreenActions {
     private fun publish(newState: ScreenState) {
         val profile = (newState.profile as? ProfileState.Selected)?.profile
         if (profile != null && !profile.paused) AndroidNotifier(applicationContext).cancelNeedsCredential()
-        runOnUiThread { state = newState }
+        runOnUiThread {
+            // The screen is the only writer of the schedule, so its copy is never older than the
+            // saved one: a load queued before the latest edit was saved must not undo that edit.
+            state = state?.let { newState.copy(schedule = it.schedule) } ?: newState
+        }
     }
 
     override fun onScheduleChange(schedule: Schedule) {
@@ -124,7 +126,8 @@ class MainActivity : ComponentActivity(), ScreenActions {
         val app = applicationContext
         Background.execute {
             WorkProfiles(app).choose(serial)
-            // Nothing was applied while the profile was unknown, so this run applies the schedule.
+            // Choosing another profile forgets the state applied to the previous one, and nothing
+            // was applied while the profile was unknown, so this run applies the schedule.
             createReconciler(app).run(Reason.APP_OPENED)
             publish(ScreenState.load(app))
         }
@@ -132,19 +135,24 @@ class MainActivity : ComponentActivity(), ScreenActions {
 
     override fun onRescan() = refresh(Reason.APP_OPENED)
 
+    override fun onRefresh() = refresh()
+
     override fun onCopy(text: String) {
         getSystemService(ClipboardManager::class.java)
             .setPrimaryClip(ClipData.newPlainText(getString(R.string.app_name), text))
     }
 
     override fun onAllowNotifications() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) !=
-            PackageManager.PERMISSION_GRANTED &&
-            !requestedNotifications
-        ) {
-            requestedNotifications = true
-            requestNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
+        val prefs = Prefs(this)
+        val permission = Manifest.permission.POST_NOTIFICATIONS
+        // After the user declined for good, the system no longer asks and only the settings
+        // screen can allow notifications.
+        val canAsk = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED &&
+            (!prefs.askedForNotifications || shouldShowRequestPermissionRationale(permission))
+        if (canAsk) {
+            prefs.askedForNotifications = true
+            requestNotifications.launch(permission)
         } else {
             open(
                 Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)

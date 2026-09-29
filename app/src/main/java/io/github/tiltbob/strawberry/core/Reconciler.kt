@@ -9,9 +9,10 @@ import java.time.ZoneId
  * app's screen) calls [run]; it is idempotent and must be called on the shared background thread.
  *
  * The app only acts at schedule boundaries: it remembers the desired state it last acted on and
- * applies the schedule again only when that desired state changes, or when the run is forced
- * (after boot, after the schedule was edited, and for the boot retry). A manual pause or unpause
- * in between is left alone until the next boundary.
+ * applies the schedule again only when that desired state changes, when the boundary armed by the
+ * previous run has passed, or when the run is forced (after boot, after the schedule was edited,
+ * and for the boot retry). A manual pause or unpause in between is left alone until the next
+ * boundary.
  */
 class Reconciler(
     private val store: ScheduleStore,
@@ -40,8 +41,17 @@ class Reconciler(
         val evalAt = if (scheduledAt != null && scheduledAt > now) scheduledAt else now
         val desiredWorkOn = schedule.isWorkOnAt(evalAt, zone)
 
-        if (reason.forcesApply || store.lastDesiredWorkOn != desiredWorkOn) {
-            val result = apply(desiredWorkOn)
+        // The boundary the previous run armed has passed. Checked in addition to the desired state,
+        // because alarms lost across two boundaries (force stop, battery killer, hibernation) leave
+        // the desired state looking unchanged.
+        val passedBoundary = status.nextAlarmAt?.let { it <= evalAt } == true
+        if (reason.forcesApply || store.lastDesiredWorkOn != desiredWorkOn || passedBoundary) {
+            val result = try {
+                apply(desiredWorkOn)
+            } catch (e: RuntimeException) {
+                // Unexpected, but the next boundary must still be armed and the problem shown.
+                ApplyResult.Error(e.message ?: e.javaClass.simpleName)
+            }
             handleResult(result, desiredWorkOn, reason, now)
             status = status.copy(lastApplyAt = now, lastApplyResult = result)
         }
@@ -70,13 +80,13 @@ class Reconciler(
                 target.isPaused() == !workOn -> ApplyResult.Already
                 target.requestPaused(!workOn) -> ApplyResult.Ok
                 workOn -> ApplyResult.NeedsCredential
-                else -> ApplyResult.Error("The system refused to pause work apps")
+                else -> ApplyResult.PauseRefused
             }
         } catch (e: SecurityException) {
             // With the permission granted this means the profile left our profile group.
             if (quietMode.hasPermission()) ApplyResult.ProfileMissing else ApplyResult.NoPermission
         } catch (e: IllegalArgumentException) {
-            ApplyResult.Error(e.message ?: "The system rejected the work profile")
+            ApplyResult.Error(e.message.orEmpty())
         }
     }
 

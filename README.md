@@ -18,8 +18,12 @@ server, no account and no tracking; everything stays on the phone.
 
 1. Open the [Actions tab](https://github.com/tiltbob/strawberry/actions), pick the latest
    successful run and download the `work-schedule-debug-apk` artifact. Unzip it.
-2. Install the APK on the phone, for example with `adb install -r app-debug.apk`
-   (or copy it over and open it).
+2. Install the APK on the phone, for example with
+   `adb install --user current -r app-debug.apk` (or copy it over and open it). Without
+   `--user`, adb installs the app for every user on the phone, including the work profile, so
+   use this same command for every update too. If a copy with the work badge has already
+   appeared in the work profile, uninstall that copy from the work profile's app list; the
+   personal copy and its permission stay as they are.
 3. Grant the permission (see below), open the app and set your schedule.
 
 Every build is signed with the same key, so a new build installs over the old one and keeps the
@@ -87,8 +91,8 @@ PIN.
 
 - **Pixel "Work apps schedule":** Digital Wellbeing on Pixel phones has its own work schedule.
   Use one or the other; two schedules fight each other.
-- **Company-owned phones:** on a fully managed, company-owned phone your IT admin can limit how
-  long the work profile may stay off (at least 3 days). If it stays off longer, your personal
+- **Company-owned phones:** on a company-owned phone that has a work profile (sometimes called
+  COPE), your IT admin can limit how long the work profile may stay off (at least 3 days). If it stays off longer, your personal
   apps get suspended until you turn work apps back on. A normal weekend (Friday 18:00 to Monday
   09:00, 63 hours) is fine, but long weekends or a failed unpause can go over. Watch for the
   app's notifications.
@@ -98,7 +102,7 @@ PIN.
 - **Battery savers:** some phone makers stop background apps aggressively. Allow unrestricted
   battery use (the app offers a button, or use the adb command above) if changes come late or
   not at all.
-- **Unused apps:** Android pauses apps you have not opened for a few months, which cancels their
+- **Unused apps:** Android 12 and newer pauses apps you have not opened for a few months, which cancels their
   alarms. The app asks you to turn this off for it. Opening the app also repairs its alarms.
 - **Several work profiles:** some phones have features that look like a second work profile
   (for example Samsung Secure Folder). The app then asks which one to use. It never pauses a
@@ -106,7 +110,9 @@ PIN.
 
 ## Building locally
 
-You need JDK 21 and the Android SDK (platform 36).
+You need JDK 21 and the Android SDK (platform 36). Point Gradle at the SDK by setting
+`ANDROID_HOME`, or by creating a `local.properties` file containing
+`sdk.dir=/path/to/android-sdk` (Android Studio does this for you).
 
 ```sh
 ./gradlew assembleDebug testDebugUnitTest lintDebug

@@ -93,5 +93,10 @@ fun describeResult(context: Context, result: ApplyResult): String = when (result
     ApplyResult.NoPermission -> context.getString(R.string.result_no_permission)
     ApplyResult.ProfileMissing -> context.getString(R.string.result_profile_missing)
     ApplyResult.ProfileUnconfirmed -> context.getString(R.string.result_profile_unconfirmed)
-    is ApplyResult.Error -> context.getString(R.string.result_error, result.message)
+    ApplyResult.PauseRefused -> context.getString(R.string.result_pause_refused)
+    is ApplyResult.Error -> if (result.message.isBlank()) {
+        context.getString(R.string.result_error_unknown)
+    } else {
+        context.getString(R.string.result_error, result.message)
+    }
 }

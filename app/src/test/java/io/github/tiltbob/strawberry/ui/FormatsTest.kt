@@ -35,11 +35,13 @@ class FormatsTest {
             "Work apps on Fri from 10:00 PM until 6:00 AM the next day. Paused at all other times.",
             formats.summary(nights).plain(),
         )
-        val allDay = Schedule(start = LocalTime.of(8, 0), end = LocalTime.of(8, 0), days = DayOfWeek.entries.toSet())
+        val allDay = Schedule(start = LocalTime.of(8, 0), end = LocalTime.of(8, 0), days = setOf(DayOfWeek.MONDAY))
         assertEquals(
-            "Work apps on every day from 8:00 AM for 24 hours. Paused at all other times.",
+            "Work apps on Mon from 8:00 AM for 24 hours. Paused at all other times.",
             formats.summary(allDay).plain(),
         )
+        val always = allDay.copy(days = DayOfWeek.entries.toSet())
+        assertEquals("Work apps always on.", formats.summary(always))
     }
 
     @Test

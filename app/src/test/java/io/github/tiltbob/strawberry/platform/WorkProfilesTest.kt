@@ -7,6 +7,7 @@ import io.github.tiltbob.strawberry.core.Reason
 import io.github.tiltbob.strawberry.schedule.Schedule
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -102,6 +103,31 @@ class WorkProfilesTest {
         val selected = profiles.resolve() as ProfileState.Selected
         assertEquals(150L, selected.profile.serial)
         assertEquals(listOf(10L), selected.alternatives.map { it.serial })
+    }
+
+    @Test
+    fun chosenProfileIsNotReplacedByAnother() {
+        prefs.selectProfile(10, confirmedByUser = true)
+        // Profile 10 is gone; only another managed profile (for example Secure Folder) is left.
+        addWorkProfile(150)
+
+        val state = profiles.resolve() as ProfileState.NeedsChoice
+
+        assertEquals(listOf(150L), state.candidates.map { it.serial })
+        assertTrue(state.chosenIsGone)
+        assertEquals(10L, prefs.selectedProfileSerial)
+    }
+
+    @Test
+    fun switchingProfilesAppliesTheSchedule() {
+        addWorkProfile(10)
+        addWorkProfile(150)
+        profiles.choose(10)
+        prefs.lastDesiredWorkOn = true
+
+        profiles.choose(150)
+
+        assertNull(prefs.lastDesiredWorkOn)
     }
 
     @Test

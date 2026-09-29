@@ -48,8 +48,14 @@ sealed interface ProfileState {
         val alternatives: List<ProfileCandidate>,
     ) : ProfileState
 
-    /** More than one work profile (for example Samsung Secure Folder): the user picks one. */
-    data class NeedsChoice(val candidates: List<ProfileCandidate>) : ProfileState
+    /**
+     * The user picks one: there is more than one work profile (for example Samsung Secure
+     * Folder), or [chosenIsGone] because the profile chosen earlier is gone or cannot be verified.
+     */
+    data class NeedsChoice(
+        val candidates: List<ProfileCandidate>,
+        val chosenIsGone: Boolean = false,
+    ) : ProfileState
 
     /** Profiles exist but none could be identified: the user has to help. */
     data class NeedsConfirmation(val candidates: List<ProfileCandidate>) : ProfileState
@@ -72,13 +78,14 @@ class WorkProfiles(context: Context, private val prefs: Prefs = Prefs(context)) 
         val me = Process.myUserHandle()
         val others = userManager.userProfiles.filter { it != me }
         if (others.isEmpty()) return emptyList()
-        val managedByUserInfo = readManagedFlags()
+        // Hidden API, so only read when LauncherApps cannot tell (always on Android 11 to 14).
+        val managedByUserInfo by lazy { readManagedFlags() }
         val learned = prefs.learnedManagedSerials
         val appLabel = app.applicationInfo.loadLabel(app.packageManager)
         return others.mapNotNull { handle ->
             try {
                 val serial = userManager.getSerialNumberForUser(handle)
-                val kind = classify(handle, managedByUserInfo, serial in learned)
+                val kind = classify(handle, { managedByUserInfo }, serial in learned)
                 ProfileCandidate(
                     handle = handle,
                     serial = serial,
@@ -95,8 +102,9 @@ class WorkProfiles(context: Context, private val prefs: Prefs = Prefs(context)) 
     }
 
     /**
-     * Resolves the profile to act on, right now. Selects the work profile automatically when
-     * exactly one is positively identified and the remembered one is not usable.
+     * Resolves the profile to act on, right now. Selects the work profile automatically only when
+     * no profile has been chosen yet and exactly one is positively identified. A remembered choice
+     * is never replaced here: if that profile is gone, the user has to choose again.
      */
     fun resolve(): ProfileState {
         val all = candidates()
@@ -109,10 +117,11 @@ class WorkProfiles(context: Context, private val prefs: Prefs = Prefs(context)) 
 
         val managed = usable.filter { it.kind == ProfileKind.MANAGED }
         return when {
-            managed.size == 1 -> {
+            stored == null && managed.size == 1 -> {
                 prefs.selectProfile(managed.single().serial, confirmedByUser = false)
                 ProfileState.Selected(managed.single(), usable - managed.single())
             }
+            stored != null && managed.isNotEmpty() -> ProfileState.NeedsChoice(managed, chosenIsGone = true)
             managed.size > 1 -> ProfileState.NeedsChoice(managed)
             usable.isNotEmpty() -> ProfileState.NeedsConfirmation(usable)
             else -> ProfileState.None
@@ -133,13 +142,13 @@ class WorkProfiles(context: Context, private val prefs: Prefs = Prefs(context)) 
 
     private fun classify(
         handle: UserHandle,
-        managedByUserInfo: Map<UserHandle, Boolean>?,
+        managedByUserInfo: () -> Map<UserHandle, Boolean>?,
         learnedManaged: Boolean,
     ): ProfileKind {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
             classifyWithLauncherApps(handle)?.let { return it }
         }
-        managedByUserInfo?.get(handle)?.let { managed ->
+        managedByUserInfo()?.get(handle)?.let { managed ->
             return if (managed) ProfileKind.MANAGED else ProfileKind.NOT_MANAGED
         }
         return if (learnedManaged) ProfileKind.MANAGED else ProfileKind.UNKNOWN
@@ -161,8 +170,9 @@ class WorkProfiles(context: Context, private val prefs: Prefs = Prefs(context)) 
     }
 
     /**
-     * Android 11 to 14: UserManager.getProfiles(int) and UserInfo.isManagedProfile() are hidden
-     * but allowed for apps (greylisted). Returns null if they are not available.
+     * Used when LauncherApps cannot classify a profile (always on Android 11 to 14).
+     * UserManager.getProfiles(int) and UserInfo.isManagedProfile() are hidden but allowed for
+     * apps (greylisted). Returns null if they are not available.
      */
     @SuppressLint("DiscouragedPrivateApi", "PrivateApi", "SoonBlockedPrivateApi")
     private fun readManagedFlags(): Map<UserHandle, Boolean>? = try {

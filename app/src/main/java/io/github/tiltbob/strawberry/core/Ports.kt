@@ -43,6 +43,10 @@ sealed interface ApplyResult {
     /** Profiles exist but the user has to choose or confirm which one is the work profile. */
     data object ProfileUnconfirmed : ApplyResult
 
+    /** The system declined to pause work apps without saying why. */
+    data object PauseRefused : ApplyResult
+
+    /** Anything else; [message] comes from the system and may be empty. */
     data class Error(val message: String) : ApplyResult
 
     /** Whether the attempt settled the boundary, so it should not be retried. */
