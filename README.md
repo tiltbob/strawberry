@@ -12,7 +12,8 @@ server, no account and no tracking; everything stays on the phone.
 - A work profile (the one your employer's device management app set up), with this app
   installed in your **personal** profile.
 - A computer with `adb`, once, to grant one permission. Android offers no other way for a
-  regular app to pause the work profile.
+  regular app to pause the work profile. If your employer has blocked USB debugging on the
+  phone, the permission cannot be granted and the app cannot work.
 
 ## Install
 
@@ -32,7 +33,9 @@ it again.
 
 ## adb commands
 
-Enable USB debugging on the phone (Settings > System > Developer options), connect it and run:
+Turn on Developer options on the phone (Settings > About phone, tap Build number seven times),
+then enable USB debugging (Settings > System > Developer options; the location varies by phone
+maker), connect the phone, accept the debugging prompt on the phone and run:
 
 ```sh
 adb shell pm grant io.github.tiltbob.strawberry android.permission.MODIFY_QUIET_MODE
@@ -74,7 +77,10 @@ adb shell dumpsys deviceidle whitelist +io.github.tiltbob.strawberry
   turning "Follow schedule" on). A missed change, for example while the phone was off or after
   the clock or time zone changed, is applied as soon as the app notices.
 - **Turning off "Follow schedule"** stops all alarms; the app then changes nothing.
-- The app uses exact alarms and shows the next change on its screen.
+- The app uses exact alarms and shows the next change on its screen. On Android 12 and 12L, if
+  you later turn off "Alarms & reminders" for the app, Android deletes its pending alarm without
+  telling it. Open the app once afterwards so it can switch to regular (up to an hour late)
+  alarms.
 
 ### If your work profile has its own PIN
 

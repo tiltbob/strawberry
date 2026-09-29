@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.os.UserManager
 import android.util.Log
 import android.widget.Toast
+import io.github.tiltbob.strawberry.platform.AndroidAlarmScheduler
 import io.github.tiltbob.strawberry.platform.AndroidNotifier
 import io.github.tiltbob.strawberry.platform.ProfileState
 import io.github.tiltbob.strawberry.platform.WorkProfiles
@@ -18,6 +19,8 @@ class UnpauseActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         AndroidNotifier(this).cancelNeedsCredential()
+        // The user is handling it now, so the boot retry must not post the prompt again.
+        AndroidAlarmScheduler(this).cancelRetry()
         unpause()?.let { Toast.makeText(this, it, Toast.LENGTH_LONG).show() }
         finish()
     }

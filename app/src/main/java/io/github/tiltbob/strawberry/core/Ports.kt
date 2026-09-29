@@ -14,6 +14,12 @@ enum class Reason {
     APP_OPENED,
     SCHEDULE_SAVED,
     RETRY,
+
+    /**
+     * Android 15+ sends BOOT_COMPLETED again when the app starts after a force stop or
+     * hibernation. That is not a reboot, so it does not force the schedule.
+     */
+    RESTARTED,
     ;
 
     /** Forced runs apply the schedule even if its desired state did not change. */

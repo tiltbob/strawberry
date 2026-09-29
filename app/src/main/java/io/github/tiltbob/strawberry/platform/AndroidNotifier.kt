@@ -4,6 +4,7 @@ import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -25,7 +26,7 @@ class AndroidNotifier(context: Context) : Notifier {
         id = ID_NEEDS_CREDENTIAL,
         title = app.getString(R.string.notification_unpause_title),
         text = app.getString(R.string.notification_unpause_text),
-        target = UnpauseActivity::class.java,
+        intent = Intent(app, UnpauseActivity::class.java),
     )
 
     override fun cancelNeedsCredential() = manager.cancel(ID_NEEDS_CREDENTIAL)
@@ -34,12 +35,14 @@ class AndroidNotifier(context: Context) : Notifier {
         id = ID_PROBLEM,
         title = app.getString(R.string.notification_problem_title),
         text = describeResult(app, result),
-        target = MainActivity::class.java,
+        // The same intent as the launcher's, so a tap brings back the open screen instead of
+        // stacking a second copy of it.
+        intent = Intent.makeMainActivity(ComponentName(app, MainActivity::class.java)),
     )
 
     override fun cancelProblem() = manager.cancel(ID_PROBLEM)
 
-    private fun post(id: Int, title: String, text: String, target: Class<*>) {
+    private fun post(id: Int, title: String, text: String, intent: Intent) {
         if (!canPostNotifications(app)) return
         manager.createNotificationChannel(
             NotificationChannel(
@@ -51,7 +54,7 @@ class AndroidNotifier(context: Context) : Notifier {
         val tap = PendingIntent.getActivity(
             app,
             id,
-            Intent(app, target).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
         val notification = NotificationCompat.Builder(app, CHANNEL_ALERTS)

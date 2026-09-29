@@ -67,6 +67,16 @@ data class Schedule(
         return null
     }
 
+    /**
+     * The first transition after [after] that actually changes work apps when they are currently
+     * [workOn] (null if unknown). If they were changed by hand, the next transition only brings
+     * the schedule to the state they already have, so the change comes one transition later.
+     */
+    fun nextChange(after: Instant, zone: ZoneId, workOn: Boolean?): Instant? {
+        val next = nextTransition(after, zone) ?: return null
+        return if (workOn != null && isWorkOnAt(next, zone) == workOn) nextTransition(next, zone) else next
+    }
+
     private fun window(startDay: LocalDate, zone: ZoneId): Pair<Instant, Instant> {
         val endDay = if (endsNextDay) startDay.plusDays(1) else startDay
         return resolve(startDay, start, zone) to resolve(endDay, end, zone)

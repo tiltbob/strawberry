@@ -1,6 +1,7 @@
 package io.github.tiltbob.strawberry.receiver
 
 import android.content.Intent
+import android.provider.Settings
 import io.github.tiltbob.strawberry.core.Reason
 import io.github.tiltbob.strawberry.idleEverything
 import io.github.tiltbob.strawberry.platform.Prefs
@@ -48,6 +49,21 @@ class ReceiversTest {
             assertEquals(action, reason, lastReason())
         }
         assertNotNull("an alarm is armed", prefs.status?.nextAlarmAt)
+    }
+
+    @Test
+    fun bootCompletedWithoutARebootIsNotForced() {
+        fun boot(count: Int): Reason? {
+            Settings.Global.putInt(app.contentResolver, Settings.Global.BOOT_COUNT, count)
+            app.sendBroadcast(Intent(Intent.ACTION_BOOT_COMPLETED))
+            idleEverything()
+            return lastReason()
+        }
+
+        assertEquals(Reason.BOOT, boot(3))
+        // Android 15+ sends it again after a force stop; the boot count stays the same.
+        assertEquals(Reason.RESTARTED, boot(3))
+        assertEquals(Reason.BOOT, boot(4))
     }
 
     @Test

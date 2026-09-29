@@ -4,7 +4,9 @@ import android.app.AlarmManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.provider.Settings
 import io.github.tiltbob.strawberry.core.Reason
+import io.github.tiltbob.strawberry.platform.Prefs
 import io.github.tiltbob.strawberry.platform.createReconciler
 import io.github.tiltbob.strawberry.platform.runInBackground
 import java.time.DateTimeException
@@ -25,7 +27,22 @@ class SystemEventReceiver : BroadcastReceiver() {
         // This process' default zone may not have caught up yet; the broadcast carries the new one.
         val zone = if (reason == Reason.TIMEZONE_CHANGED) zoneFrom(intent) else null
         val app = context.applicationContext
-        runInBackground { createReconciler(app).run(reason, zoneOverride = zone) }
+        runInBackground {
+            val actual = if (reason == Reason.BOOT && !isNewBoot(app)) Reason.RESTARTED else reason
+            createReconciler(app).run(actual, zoneOverride = zone)
+        }
+    }
+
+    /**
+     * Android 15+ also sends BOOT_COMPLETED when the app starts after a force stop. Only a real
+     * reboot changes the boot count. If the count cannot be read, assume a reboot.
+     */
+    private fun isNewBoot(context: Context): Boolean {
+        val count = Settings.Global.getInt(context.contentResolver, Settings.Global.BOOT_COUNT, -1)
+        val prefs = Prefs(context)
+        if (count != -1 && count == prefs.lastBootCount) return false
+        prefs.lastBootCount = count
+        return true
     }
 
     private fun zoneFrom(intent: Intent): ZoneId? = try {

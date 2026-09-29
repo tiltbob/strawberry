@@ -41,6 +41,9 @@ import io.github.tiltbob.strawberry.ui.theme.WorkScheduleTheme
 class MainActivity : ComponentActivity(), ScreenActions {
     private var state by mutableStateOf<ScreenState?>(null)
 
+    /** Schedule edits made on this screen. Main thread only. */
+    private var edits = 0
+
     private val requestNotifications =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { refresh() }
     private val openSettings =
@@ -56,9 +59,10 @@ class MainActivity : ComponentActivity(), ScreenActions {
         override fun onReceive(context: Context, intent: Intent) {
             val user = IntentCompat.getParcelableExtra(intent, Intent.EXTRA_USER, UserHandle::class.java)
             val app = context.applicationContext
+            val editsAtStart = edits
             Background.execute {
                 if (user != null) WorkProfiles(app).learnManaged(user)
-                publish(ScreenState.load(app))
+                publish(ScreenState.load(app), editsAtStart)
             }
         }
     }
@@ -95,41 +99,52 @@ class MainActivity : ComponentActivity(), ScreenActions {
 
     private fun refresh(reason: Reason? = null) {
         val app = applicationContext
+        val editsAtStart = edits
         Background.execute {
             if (reason != null) createReconciler(app).run(reason)
-            publish(ScreenState.load(app))
+            publish(ScreenState.load(app), editsAtStart)
         }
     }
 
-    /** Call on the background thread. */
-    private fun publish(newState: ScreenState) {
+    /** Call on the background thread with the value [edits] had when the task was queued. */
+    private fun publish(newState: ScreenState, editsAtStart: Int) {
         val profile = (newState.profile as? ProfileState.Selected)?.profile
         if (profile != null && !profile.paused) AndroidNotifier(applicationContext).cancelNeedsCredential()
         runOnUiThread {
-            // The screen is the only writer of the schedule, so its copy is never older than the
-            // saved one: a load queued before the latest edit was saved must not undo that edit.
-            state = state?.let { newState.copy(schedule = it.schedule) } ?: newState
+            // Tasks run in order on Background, so a load queued after the latest edit already sees
+            // it saved. Only a load queued before a newer edit keeps the screen's copy, so that it
+            // does not undo that edit. Otherwise the saved schedule wins, which also picks up
+            // edits made in another copy of this screen.
+            val shown = state
+            state = if (shown != null && editsAtStart != edits) {
+                newState.copy(schedule = shown.schedule)
+            } else {
+                newState
+            }
         }
     }
 
     override fun onScheduleChange(schedule: Schedule) {
+        edits++
+        val editsAtStart = edits
         state = state?.copy(schedule = schedule)
         val app = applicationContext
         Background.execute {
             Prefs(app).schedule = schedule
             createReconciler(app).run(Reason.SCHEDULE_SAVED)
-            publish(ScreenState.load(app))
+            publish(ScreenState.load(app), editsAtStart)
         }
     }
 
     override fun onChooseProfile(serial: Long) {
         val app = applicationContext
+        val editsAtStart = edits
         Background.execute {
             WorkProfiles(app).choose(serial)
             // Choosing another profile forgets the state applied to the previous one, and nothing
             // was applied while the profile was unknown, so this run applies the schedule.
             createReconciler(app).run(Reason.APP_OPENED)
-            publish(ScreenState.load(app))
+            publish(ScreenState.load(app), editsAtStart)
         }
     }
 

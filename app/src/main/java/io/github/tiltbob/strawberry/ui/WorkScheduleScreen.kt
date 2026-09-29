@@ -225,7 +225,8 @@ private fun StatusCard(state: ScreenState, formats: Formats, actions: ScreenActi
 private fun nextChangeText(state: ScreenState, formats: Formats): String {
     val schedule = state.schedule
     if (!schedule.enabled) return stringResource(R.string.status_schedule_off)
-    val next = schedule.nextTransition(state.now, state.zone)
+    val workOn = (state.profile as? ProfileState.Selected)?.profile?.paused?.not()
+    val next = schedule.nextChange(state.now, state.zone, workOn)
         ?: return stringResource(R.string.status_no_changes)
     val moment = formats.moment(next, state.now, state.zone)
     return if (schedule.isWorkOnAt(next, state.zone)) {

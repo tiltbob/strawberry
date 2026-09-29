@@ -107,6 +107,11 @@ class Prefs(context: Context) : ScheduleStore {
         prefs.edit(commit = true) { putStringSet(LEARNED, (learned + serial).map { it.toString() }.toSet()) }
     }
 
+    /** The phone's boot count when BOOT_COMPLETED last arrived, or -1 if unknown. */
+    var lastBootCount: Int
+        get() = prefs.getInt(BOOT_COUNT, -1)
+        set(value) = prefs.edit(commit = true) { putInt(BOOT_COUNT, value) }
+
     /** Whether the app has asked for the notification permission before. */
     var askedForNotifications: Boolean
         get() = prefs.getBoolean(ASKED_NOTIFICATIONS, false)
@@ -122,6 +127,7 @@ class Prefs(context: Context) : ScheduleStore {
         const val PROFILE_CONFIRMED = "profile_confirmed"
         const val LEARNED = "learned_managed_serials"
         const val ASKED_NOTIFICATIONS = "asked_for_notifications"
+        const val BOOT_COUNT = "last_boot_count"
         const val STATUS_RUN_AT = "status_run_at"
         const val STATUS_REASON = "status_reason"
         const val STATUS_APPLY_AT = "status_apply_at"

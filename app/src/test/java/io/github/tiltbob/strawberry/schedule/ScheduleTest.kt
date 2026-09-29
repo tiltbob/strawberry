@@ -42,6 +42,22 @@ class ScheduleTest {
     }
 
     @Test
+    fun nextChangeSkipsTheBoundaryThatMatchesAManualChange() {
+        // 2026-10-06 is a Tuesday.
+        val tuesdayEvening = at(newYork, "2026-10-06T20:00")
+        val tuesdayMorning = at(newYork, "2026-10-06T10:00")
+
+        // Turned on by hand: 09:00 changes nothing, so the next change is the pause at 18:00.
+        assertEquals(at(newYork, "2026-10-07T18:00"), officeHours.nextChange(tuesdayEvening, newYork, workOn = true))
+        // Paused by hand: 18:00 changes nothing, so the next change is 09:00 the next day.
+        assertEquals(at(newYork, "2026-10-07T09:00"), officeHours.nextChange(tuesdayMorning, newYork, workOn = false))
+        // Following the schedule, or unknown: the plain next transition.
+        assertEquals(at(newYork, "2026-10-07T09:00"), officeHours.nextChange(tuesdayEvening, newYork, workOn = false))
+        assertEquals(at(newYork, "2026-10-07T09:00"), officeHours.nextChange(tuesdayEvening, newYork, workOn = null))
+        assertNull(schedule(9, 0, 18, 0, emptySet()).nextChange(tuesdayEvening, newYork, workOn = true))
+    }
+
+    @Test
     fun officeHoursWindowIsHalfOpen() {
         // 2026-10-05 is a Monday.
         assertFalse(officeHours.isWorkOnAt(at(newYork, "2026-10-05T08:59"), newYork))

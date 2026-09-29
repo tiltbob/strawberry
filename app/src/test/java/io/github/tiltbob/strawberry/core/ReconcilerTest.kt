@@ -153,6 +153,26 @@ class ReconcilerTest {
     }
 
     @Test
+    fun forcedReasonsAreExactlyBootSaveAndRetry() {
+        val forced = setOf(Reason.BOOT, Reason.SCHEDULE_SAVED, Reason.RETRY)
+        for (reason in Reason.entries) {
+            // Work apps were paused by hand inside the window; no boundary has passed since.
+            val store = FakeStore(Schedule(enabled = true))
+            store.lastDesiredWorkOn = true
+            store.status = RunStatus(at("2026-10-05T10:00"), Reason.ALARM, nextAlarmAt = monday1800)
+            val profile = FakeProfile(paused = true)
+            val reconciler = Reconciler(
+                store, FakeQuietMode(profile), FakeAlarms(), FakeNotifier(), { at("2026-10-05T11:00") }, { zone },
+            )
+
+            reconciler.run(reason, zoneOverride = zone)
+
+            assertEquals(reason.name, reason in forced, reason.forcesApply)
+            assertEquals(reason.name, reason in forced, profile.requests.isNotEmpty())
+        }
+    }
+
+    @Test
     fun bootForcesTheSchedule() {
         store.lastDesiredWorkOn = true
         profile.paused = true
