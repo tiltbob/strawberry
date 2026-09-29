@@ -9,10 +9,21 @@ android {
 
     defaultConfig {
         applicationId = "io.github.tiltbob.strawberry"
-        minSdk = 28
+        minSdk = 30
         targetSdk = 36
         versionCode = 1
         versionName = "0.1.0"
+    }
+
+    signingConfigs {
+        // A committed, publicly known debug key, so every CI build is signed with the same key
+        // and can be installed over the previous one (an uninstall would drop the adb grant).
+        getByName("debug") {
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
     }
 
     buildTypes {
@@ -32,6 +43,11 @@ android {
 
     buildFeatures {
         compose = true
+    }
+
+    lint {
+        // Newer AndroidX releases and target SDKs need compileSdk 37 (see libs.versions.toml).
+        disable += setOf("GradleDependency", "OldTargetApi")
     }
 
     testOptions {

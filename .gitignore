@@ -9,6 +9,8 @@ build/
 # Local configuration (SDK path, signing secrets)
 local.properties
 *.keystore
+# Publicly known debug key, committed on purpose (see README).
+!app/debug.keystore
 *.jks
 keystore.properties
 

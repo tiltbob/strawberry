@@ -1,4 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <style name="Theme.WorkSchedule" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <!-- For UnpauseActivity, which shows nothing and finishes right away. -->
+    <style name="Theme.WorkSchedule.Invisible" parent="android:Theme.Translucent.NoTitleBar">
+        <item name="android:windowAnimationStyle">@null</item>
+    </style>
 </resources>

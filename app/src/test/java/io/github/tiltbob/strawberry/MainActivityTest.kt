@@ -1,6 +1,7 @@
 package io.github.tiltbob.strawberry
 
-import android.os.Build
+import io.github.tiltbob.strawberry.core.Reason
+import io.github.tiltbob.strawberry.platform.Prefs
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Test
@@ -9,20 +10,14 @@ import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 
-/** Runs against Robolectric's android-all jar (defaults to targetSdk). */
 @RunWith(RobolectricTestRunner::class)
-class RobolectricSmokeTest {
+class MainActivityTest {
     @Test
-    fun appLabelResolvesFromResources() {
-        val app = RuntimeEnvironment.getApplication()
-        assertEquals("Work Schedule", app.getString(R.string.app_name))
-        assertEquals(36, Build.VERSION.SDK_INT)
-    }
-
-    @Test
-    fun mainActivityLaunches() {
+    fun launchesAndReconcilesOnResume() {
         Robolectric.buildActivity(MainActivity::class.java).use { controller ->
             assertNotNull(controller.setup().get())
+            idleEverything()
+            assertEquals(Reason.APP_OPENED, Prefs(RuntimeEnvironment.getApplication()).status?.lastReason)
         }
     }
 }

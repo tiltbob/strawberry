@@ -1,3 +1,99 @@
 <resources>
     <string name="app_name">Work Schedule</string>
+
+    <!-- Status card -->
+    <string name="status_work_on">Work apps on</string>
+    <string name="status_work_paused">Work apps paused</string>
+    <string name="status_work_unknown">Work profile not set up</string>
+    <string name="status_profile">Profile: %1$s</string>
+    <string name="status_change_profile">Change</string>
+    <string name="status_schedule_off">The schedule is off. Turn on \"Follow schedule\" below.</string>
+    <string name="status_no_changes">Work apps stay as they are: nothing in the schedule changes them.</string>
+    <string name="status_pauses">Pauses %1$s</string>
+    <string name="status_turns_on">Turns on %1$s</string>
+    <string name="status_last_applied">Last applied %1$s</string>
+    <string name="status_inexact">Alarms are not exact, so changes can come up to an hour late.</string>
+    <string name="status_turn_on_now">Turn on work apps</string>
+
+    <!-- Results, used on the status card, in notifications and in toasts -->
+    <string name="result_ok">Work apps now match the schedule.</string>
+    <string name="result_already">Work apps already matched the schedule.</string>
+    <string name="result_needs_credential">Work apps need your work PIN to turn on.</string>
+    <string name="result_no_permission">The app is not allowed to pause work apps yet. Grant the permission with adb (see Setup).</string>
+    <string name="result_profile_missing">No work profile was found.</string>
+    <string name="result_profile_unconfirmed">Open the app and choose which profile is your work profile.</string>
+    <string name="result_error">Something went wrong: %1$s</string>
+    <string name="unpause_failed">Could not turn on work apps. Open Work Schedule to check the setup.</string>
+
+    <!-- Notifications -->
+    <string name="notification_channel_alerts">Schedule alerts</string>
+    <string name="notification_unpause_title">Tap to turn on work apps</string>
+    <string name="notification_unpause_text">It is time for work apps, but they need your work PIN.</string>
+    <string name="notification_problem_title">Work Schedule needs attention</string>
+
+    <!-- Setup checklist -->
+    <plurals name="setup_title">
+        <item quantity="one">Setup: %d step left</item>
+        <item quantity="other">Setup: %d steps left</item>
+    </plurals>
+    <string name="setup_title_recommended">Setup: recommended</string>
+    <string name="setup_recommended">Recommended</string>
+    <string name="setup_copy">Copy</string>
+    <string name="setup_copied">Copied</string>
+    <string name="setup_open_settings">Open settings</string>
+    <string name="setup_allow">Allow</string>
+
+    <string name="setup_permission_title">Allow pausing work apps</string>
+    <string name="setup_permission_why">Android only lets this app pause the work profile after a one-time grant from a computer. Connect with USB debugging and run:</string>
+    <string name="setup_permission_verify">Then reopen this app. This step disappears once the grant worked.</string>
+
+    <string name="setup_no_profile_title">No work profile found</string>
+    <string name="setup_no_profile_why">Install this app in your personal profile (not inside the work profile), and make sure the work profile is fully set up.</string>
+    <string name="setup_scan_again">Scan again</string>
+    <string name="setup_choose_title">Choose your work profile</string>
+    <string name="setup_choose_why">More than one work profile was found (Secure Folder and similar features can look like one). Pick the one your employer manages.</string>
+    <string name="setup_identify_title">Identify your work profile</string>
+    <string name="setup_identify_why">Android did not say which profile is the work profile. With this screen open, turn \"Work apps\" off and on once in Quick Settings, and it will be detected.</string>
+    <string name="setup_identify_manual">Or choose it yourself:</string>
+    <string name="profile_row_detail">User serial %1$d · %2$s</string>
+    <string name="profile_paused">paused</string>
+    <string name="profile_on">on</string>
+    <string name="profile_confirm_title">Use this profile?</string>
+    <string name="profile_confirm_text">Android could not confirm that \"%1$s\" is a work profile. If it is something else, such as cloned apps or a private space, the schedule will pause that instead.</string>
+    <string name="profile_confirm_ok">Use it</string>
+    <string name="profile_choose_title">Choose the work profile</string>
+    <string name="cancel">Cancel</string>
+
+    <string name="setup_notifications_title">Allow notifications</string>
+    <string name="setup_notifications_why">So the app can tell you when work apps need your PIN or when something went wrong.</string>
+    <string name="setup_exact_title">Allow alarms and reminders</string>
+    <string name="setup_exact_why">Without exact alarms, work apps can pause or turn on up to an hour late.</string>
+    <string name="setup_unused_title">Keep the app active</string>
+    <string name="setup_unused_why">Android pauses apps that are not opened for a few months, which cancels the schedule. Turn off \"Pause app activity if unused\".</string>
+    <string name="setup_battery_title">Unrestricted battery use</string>
+    <string name="setup_battery_why">Some phones delay or drop alarms to save battery. Allowing unrestricted use makes the schedule reliable. From a computer you can also run:</string>
+
+    <!-- Schedule card -->
+    <string name="schedule_title">Schedule</string>
+    <string name="schedule_follow">Follow schedule</string>
+    <string name="schedule_from">Work apps on from</string>
+    <string name="schedule_to">to</string>
+    <string name="schedule_start_description">Start time, %1$s</string>
+    <string name="schedule_end_description">End time, %1$s</string>
+    <string name="schedule_days">On these days</string>
+    <string name="schedule_pick_start">Work apps turn on at</string>
+    <string name="schedule_pick_end">Work apps pause at</string>
+    <string name="ok">OK</string>
+
+    <string name="days_every_day">every day</string>
+    <string name="days_range">%1$s–%2$s</string>
+    <string name="summary">Work apps on %1$s %2$s–%3$s. Paused at all other times.</string>
+    <string name="summary_overnight">Work apps on %1$s from %2$s until %3$s the next day. Paused at all other times.</string>
+    <string name="summary_24h">Work apps on %1$s from %2$s for 24 hours. Paused at all other times.</string>
+    <string name="summary_no_days">No days selected, so work apps stay paused.</string>
+
+    <string name="moment_today">today at %1$s</string>
+    <string name="moment_tomorrow">tomorrow at %1$s</string>
+    <string name="moment_yesterday">yesterday at %1$s</string>
+    <string name="moment_day">%1$s at %2$s</string>
 </resources>
