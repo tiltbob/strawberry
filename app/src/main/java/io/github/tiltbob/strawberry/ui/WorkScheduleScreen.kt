@@ -154,15 +154,16 @@ private fun StatusCard(state: ScreenState, formats: Formats, actions: ScreenActi
             ),
             style = MaterialTheme.typography.headlineSmall,
         )
-        // Which profile is used only matters when there is more than one to choose from.
-        if (selected != null && selected.alternatives.isNotEmpty()) {
+        if (selected != null) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = stringResource(R.string.status_profile, selected.profile.label),
                     modifier = Modifier.weight(1f),
                 )
-                TextButton(onClick = { choosing = true }) {
-                    Text(stringResource(R.string.status_change_profile))
+                if (selected.alternatives.isNotEmpty()) {
+                    TextButton(onClick = { choosing = true }) {
+                        Text(stringResource(R.string.status_change_profile))
+                    }
                 }
             }
         }
