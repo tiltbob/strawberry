@@ -168,13 +168,17 @@ class MainActivity : ComponentActivity(), ScreenActions {
 
     override fun onAllowNotifications() {
         val prefs = Prefs(this)
-        val permission = Manifest.permission.POST_NOTIFICATIONS
         // After the user declined for good, the system no longer asks and only the settings
         // screen can allow notifications.
-        val canAsk = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+        val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            Manifest.permission.POST_NOTIFICATIONS
+        } else {
+            null
+        }
+        val canAsk = permission != null &&
             ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED &&
             (!prefs.askedForNotifications || shouldShowRequestPermissionRationale(permission))
-        if (canAsk) {
+        if (permission != null && canAsk) {
             prefs.askedForNotifications = true
             requestNotifications.launch(permission)
         } else {

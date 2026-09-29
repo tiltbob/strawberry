@@ -6,6 +6,12 @@ example: work apps on Monday to Friday from 09:00 to 18:00, paused at all other 
 It does what the "Work apps" tile in Quick Settings does, just automatically. There is no
 server, no account and no tracking; everything stays on the phone.
 
+<p>
+  <img src="docs/screenshot-schedule.png" alt="Schedule set to Monday to Friday, 9:00 AM to 6:00 PM" width="260">
+  <img src="docs/screenshot-schedule-dark.png" alt="The same screen in dark mode" width="260">
+  <img src="docs/screenshot-setup.png" alt="Setup steps shown on first launch" width="260">
+</p>
+
 ## Requirements
 
 - Android 11 or newer.
@@ -107,18 +113,18 @@ PIN.
 - **Pixel "Work apps schedule":** Digital Wellbeing on Pixel phones has its own work schedule.
   Use one or the other; two schedules fight each other.
 - **Company-owned phones:** on a company-owned phone that has a work profile (sometimes called
-  COPE), your IT admin can limit how long the work profile may stay off (at least 3 days). If it stays off longer, your personal
-  apps get suspended until you turn work apps back on. A normal weekend (Friday 18:00 to Monday
-  09:00, 63 hours) is fine, but long weekends or a failed unpause can go over. Watch for the
-  app's notifications.
+  COPE), your IT admin can limit how long the work profile may stay off (at least 3 days). If
+  it stays off longer, your personal apps get suspended until you turn work apps back on. A
+  normal weekend (Friday 18:00 to Monday 09:00, 63 hours) is fine, but long weekends or a failed
+  unpause can go over. Watch for the app's notifications.
 - **Your employer can see it:** the device management app is told when the work profile is
   paused or unpaused (not which app did it).
 - **Pausing closes work apps**, including a running work call, when the window ends.
 - **Battery savers:** some phone makers stop background apps aggressively. Allow unrestricted
   battery use (the app offers a button, or use the adb command above) if changes come late or
   not at all.
-- **Unused apps:** Android 12 and newer pauses apps you have not opened for a few months, which cancels their
-  alarms. The app asks you to turn this off for it. Opening the app also repairs its alarms.
+- **Unused apps:** Android 12 and newer pauses apps you have not opened for a few months, which
+  cancels their alarms. The app asks you to turn this off for it. Opening the app also repairs its alarms.
 - **Several work profiles:** some phones have features that look like a second work profile
   (for example Samsung Secure Folder). The app then asks which one to use. It never pauses a
   profile it cannot identify unless you pick it yourself.

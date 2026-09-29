@@ -154,16 +154,15 @@ private fun StatusCard(state: ScreenState, formats: Formats, actions: ScreenActi
             ),
             style = MaterialTheme.typography.headlineSmall,
         )
-        if (selected != null) {
+        // Which profile is used only matters when there is more than one to choose from.
+        if (selected != null && selected.alternatives.isNotEmpty()) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = stringResource(R.string.status_profile, selected.profile.label),
                     modifier = Modifier.weight(1f),
                 )
-                if (selected.alternatives.isNotEmpty()) {
-                    TextButton(onClick = { choosing = true }) {
-                        Text(stringResource(R.string.status_change_profile))
-                    }
+                TextButton(onClick = { choosing = true }) {
+                    Text(stringResource(R.string.status_change_profile))
                 }
             }
         }
@@ -335,7 +334,8 @@ private fun CommandBox(command: String, actions: ScreenActions) {
                 Text(
                     text = command,
                     fontFamily = FontFamily.Monospace,
-                    style = MaterialTheme.typography.bodyMedium,
+                    // Small enough that the long permission name fits on one line on most phones.
+                    style = MaterialTheme.typography.bodySmall,
                 )
             }
             TextButton(
@@ -444,23 +444,18 @@ private fun ScheduleCard(schedule: Schedule, formats: Formats, onChange: (Schedu
             Switch(checked = schedule.enabled, onCheckedChange = null)
         }
 
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            itemVerticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(stringResource(R.string.schedule_from))
-            TimeButton(
-                text = formats.time(schedule.start),
-                description = R.string.schedule_start_description,
-                onClick = { editing = TimeField.START },
-            )
-            Text(stringResource(R.string.schedule_to))
-            TimeButton(
-                text = formats.time(schedule.end),
-                description = R.string.schedule_end_description,
-                onClick = { editing = TimeField.END },
-            )
-        }
+        TimeRow(
+            label = R.string.schedule_start,
+            text = formats.time(schedule.start),
+            description = R.string.schedule_start_description,
+            onClick = { editing = TimeField.START },
+        )
+        TimeRow(
+            label = R.string.schedule_end,
+            text = formats.time(schedule.end),
+            description = R.string.schedule_end_description,
+            onClick = { editing = TimeField.END },
+        )
 
         Text(stringResource(R.string.schedule_days), style = MaterialTheme.typography.labelLarge)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -505,10 +500,13 @@ private fun ScheduleCard(schedule: Schedule, formats: Formats, onChange: (Schedu
 }
 
 @Composable
-private fun TimeButton(text: String, description: Int, onClick: () -> Unit) {
-    val label = stringResource(description, text)
-    OutlinedButton(onClick = onClick, modifier = Modifier.semantics { contentDescription = label }) {
-        Text(text)
+private fun TimeRow(label: Int, text: String, description: Int, onClick: () -> Unit) {
+    val spoken = stringResource(description, text)
+    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Text(stringResource(label), modifier = Modifier.weight(1f))
+        OutlinedButton(onClick = onClick, modifier = Modifier.semantics { contentDescription = spoken }) {
+            Text(text)
+        }
     }
 }
 

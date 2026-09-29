@@ -80,10 +80,10 @@
     <!-- Schedule card -->
     <string name="schedule_title">Schedule</string>
     <string name="schedule_follow">Follow schedule</string>
-    <string name="schedule_from">Work apps on from</string>
-    <string name="schedule_to">to</string>
-    <string name="schedule_start_description">Start time, %1$s</string>
-    <string name="schedule_end_description">End time, %1$s</string>
+    <string name="schedule_start">Work apps turn on at</string>
+    <string name="schedule_end">Work apps pause at</string>
+    <string name="schedule_start_description">Work apps turn on at %1$s</string>
+    <string name="schedule_end_description">Work apps pause at %1$s</string>
     <string name="schedule_days">On these days</string>
     <string name="schedule_pick_start">Work apps turn on at</string>
     <string name="schedule_pick_end">Work apps pause at</string>
