@@ -1,0 +1,131 @@
+# Builds a signed release APK and publishes it as a GitHub Release when a tag like
+# v1.2.3 is pushed. Obtainium (https://github.com/ImranR98/Obtainium) tracks those
+# releases: add https://github.com/<owner>/strawberry as an app source.
+#
+# One-time setup (scripts/setup-signing.sh writes these from a laptop):
+#   secrets.KEYSTORE_BASE64     the release keystore, base64 encoded
+#   secrets.KEYSTORE_PASSWORD   its store password
+#   secrets.KEY_ALIAS           the key alias inside it
+#   secrets.KEY_PASSWORD        that key's password
+# Keep the keystore safe: Android only installs updates signed with the same key, and an
+# uninstall drops the MODIFY_QUIET_MODE grant the app needs (see README).
+
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Signed APK and GitHub Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      # Also validates the Gradle wrapper jar checksum (validate-wrappers defaults to true).
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      # The runner image ships the Android SDK; make sure the exact packages this build needs
+      # are present (no-op when already installed).
+      - name: Install Android SDK packages
+        run: |
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKMANAGER" --licenses > /dev/null || true
+          "$SDKMANAGER" --install "platforms;android-36" "build-tools;36.0.0" "platform-tools" > /dev/null
+
+      # Robolectric downloads its android-all jar (~200 MB per SDK level) into ~/.m2 at test time.
+      - name: Cache Robolectric android-all jars
+        uses: actions/cache@v6
+        with:
+          path: ~/.m2/repository/org/robolectric
+          key: robolectric-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml') }}
+          restore-keys: robolectric-${{ runner.os }}-
+
+      - name: Version from tag
+        id: version
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          NAME="${TAG#v}"
+          BASE="${NAME%%-*}"
+          IFS=. read -r MAJOR MINOR PATCH <<< "$BASE"
+          for n in "$MAJOR" "$MINOR" "$PATCH"; do
+            [[ "$n" =~ ^[0-9]+$ ]] || { echo "::error::tag must look like v1.2.3 (got $TAG)"; exit 1; }
+          done
+          (( MINOR < 1000 && PATCH < 1000 )) || { echo "::error::minor and patch must be below 1000"; exit 1; }
+          CODE=$(( MAJOR * 1000000 + MINOR * 1000 + PATCH ))
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+          echo "code=$CODE" >> "$GITHUB_OUTPUT"
+          echo "Building $NAME (versionCode $CODE)"
+
+      - name: Restore signing keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          for v in KEYSTORE_BASE64 KEYSTORE_PASSWORD KEY_ALIAS KEY_PASSWORD; do
+            if [ -z "${!v:-}" ]; then
+              echo "::error::repository secret $v is not set; run scripts/setup-signing.sh from a laptop"
+              exit 1
+            fi
+          done
+          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+
+      - name: Unit tests
+        run: ./gradlew testDebugUnitTest
+
+      - name: Build signed release APK
+        env:
+          STRAWBERRY_KEYSTORE_FILE: ${{ runner.temp }}/release.jks
+          STRAWBERRY_KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          STRAWBERRY_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          STRAWBERRY_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          ./gradlew assembleRelease \
+            -PstrawberryVersionName="${{ steps.version.outputs.name }}" \
+            -PstrawberryVersionCode="${{ steps.version.outputs.code }}"
+
+      - name: Verify signature and name the artifact
+        id: artifact
+        env:
+          NAME: ${{ steps.version.outputs.name }}
+        run: |
+          set -euo pipefail
+          APK=app/build/outputs/apk/release/app-release.apk
+          test -f "$APK" || { echo "::error::signed APK not produced (is the signing config picked up?)"; ls -R app/build/outputs/apk; exit 1; }
+          TOOLS="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -n 1)"
+          "$TOOLS/apksigner" verify --print-certs "$APK"
+          mkdir -p dist
+          OUT="dist/work-schedule-$NAME.apk"
+          cp "$APK" "$OUT"
+          (cd dist && sha256sum "work-schedule-$NAME.apk" > "work-schedule-$NAME.apk.sha256")
+          cat dist/*.sha256
+          echo "apk=$OUT" >> "$GITHUB_OUTPUT"
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Work Schedule ${{ steps.version.outputs.name }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: |
+            dist/work-schedule-*.apk
+            dist/work-schedule-*.apk.sha256

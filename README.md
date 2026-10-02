@@ -23,22 +23,36 @@ server, no account and no tracking; everything stays on the phone.
 
 ## Install
 
-1. Open the [Actions tab](https://github.com/tiltbob/strawberry/actions), pick the latest
-   successful run and download the `work-schedule-debug-apk` artifact. Unzip it. You need to be
-   signed in to GitHub to download it. GitHub deletes artifacts after 90 days; if the latest one
-   has expired, the repository owner can build a fresh one under Actions > Android CI > Run
-   workflow, or you can build the APK yourself (see [Building locally](#building-locally)).
+1. Download `work-schedule-<version>.apk` from the
+   [latest release](https://github.com/tiltbob/strawberry/releases/latest). Or let
+   [Obtainium](https://github.com/ImranR98/Obtainium) install it and tell you about new
+   versions: choose **Add App**, paste `https://github.com/tiltbob/strawberry` and add it. If
+   you want to be strict about which asset it picks, set the APK filter to
+   `work-schedule-.*\.apk`.
 2. Install the APK on the phone, for example with
-   `adb install --user current -r app-debug.apk` (or copy it over and open it). Without
-   `--user`, adb installs the app for every user on the phone, including the work profile, so
-   use this same command for every update too. If a copy with the work badge has already
-   appeared in the work profile, uninstall that copy from the work profile's app list; the
-   personal copy and its permission stay as they are.
+   `adb install --user current -r work-schedule-<version>.apk` (or copy it over and open it).
+   Without `--user`, adb installs the app for every user on the phone, including the work
+   profile, so use this same command for every update too. If a copy with the work badge has
+   already appeared in the work profile, uninstall that copy from the work profile's app list;
+   the personal copy and its permission stay as they are.
 3. Grant the permission (see below), open the app and set your schedule.
 
-Every build is signed with the same key, so a new build installs over the old one and keeps the
-permission. Do not uninstall to update: uninstalling drops the permission and you have to grant
-it again.
+Every release is signed with the same key, so a new release installs over the old one and keeps
+the permission. Do not uninstall to update: uninstalling drops the permission and you have to
+grant it again.
+
+### Development builds
+
+Every push also builds a debug APK: open the
+[Actions tab](https://github.com/tiltbob/strawberry/actions), pick the latest successful run and
+download the `work-schedule-debug-apk` artifact (unzip it; you need to be signed in to GitHub
+to download it). GitHub deletes artifacts after 90 days; the repository owner can build a fresh
+one under Actions > Android CI > Run workflow, or you can build the APK yourself (see
+[Building locally](#building-locally)).
+
+Debug builds are signed with the public debug key, not with the release key, so Android refuses
+to install one kind over the other. Switching between a release and a debug build means
+uninstalling first, which drops the permission: grant it again afterwards.
 
 ## adb commands
 
@@ -141,8 +155,49 @@ You need JDK 21 and the Android SDK (platform 36). Point Gradle at the SDK by se
 
 The APK ends up in `app/build/outputs/apk/debug/`.
 
+`./gradlew assembleRelease` builds the release APK. It is unsigned unless
+`STRAWBERRY_KEYSTORE_FILE`, `STRAWBERRY_KEYSTORE_PASSWORD`, `STRAWBERRY_KEY_ALIAS` and
+`STRAWBERRY_KEY_PASSWORD` are set in the environment. Pass
+`-PstrawberryVersionName=… -PstrawberryVersionCode=…` to override the version; the release
+workflow derives both from the tag.
+
 `app/debug.keystore` is committed on purpose: it is a **publicly known debug key** (store and
-key password `android`, alias `androiddebugkey`) that exists only so that every build, local or
-CI, has the same signature and installs over the previous one. It offers no protection; anyone
-can sign an APK with it. Only install builds from this repository's Actions or your own
-machine.
+key password `android`, alias `androiddebugkey`) that exists only so that every debug build,
+local or CI, has the same signature and installs over the previous one. It offers no
+protection; anyone can sign an APK with it. Only install debug builds from this repository's
+Actions or your own machine. Releases are signed with the project's own key instead.
+
+## Cutting a release (maintainers)
+
+The release workflow (`.github/workflows/release.yml`) runs when a tag like `v1.2.3` is pushed:
+it runs the unit tests, builds the release APK signed with the project key, checks the
+signature, and creates a GitHub Release named after the tag with `work-schedule-1.2.3.apk` and
+its SHA-256. The tag decides both the version name and the version code
+(`major * 1000000 + minor * 1000 + patch`), so tags must be strictly increasing. A pre-release
+suffix such as `v1.2.3-rc1` is accepted but shares its version code with the final `v1.2.3`.
+
+One-time setup, from a laptop with `gh` logged in (no Java needed, about a minute):
+
+```sh
+gh repo clone tiltbob/strawberry && cd strawberry
+scripts/setup-signing.sh
+```
+
+The script creates a 4096-bit RSA key and a 100-year certificate with `openssl`, writes them
+to the repository's Actions secrets (`KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`,
+`KEY_PASSWORD`) and securely wipes the local copy, so GitHub holds the only one. It prints the
+certificate fingerprint for your records. Android only installs updates signed with the same
+key, and for this app an uninstall also drops the adb-granted permission, so never delete or
+replace those secrets once a release is out. `--dry-run` shows what the script would do without
+writing anything; the comments at the top of the script explain how to share one key across
+several repositories.
+
+Then:
+
+```sh
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+Every push also runs `.github/workflows/android.yml` (tests, lint, debug APK as a build
+artifact).
