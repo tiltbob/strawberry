@@ -3,6 +3,14 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+// The release workflow passes the version from the git tag (v1.2.3 -> 1.2.3 / 1002003).
+val strawberryVersionName: String = (project.findProperty("strawberryVersionName") as String?) ?: "0.1.0"
+val strawberryVersionCode: Int = (project.findProperty("strawberryVersionCode") as String?)?.toInt() ?: 1
+
+// Release signing comes from the environment so the keystore never lives in the repo.
+// Without these variables assembleRelease still works and produces an unsigned APK.
+val releaseKeystore: String? = System.getenv("STRAWBERRY_KEYSTORE_FILE")?.takeIf { it.isNotBlank() }
+
 android {
     namespace = "io.github.tiltbob.strawberry"
     compileSdk = 36
@@ -11,8 +19,8 @@ android {
         applicationId = "io.github.tiltbob.strawberry"
         minSdk = 30
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = strawberryVersionCode
+        versionName = strawberryVersionName
     }
 
     signingConfigs {
@@ -24,6 +32,19 @@ android {
             keyAlias = "androiddebugkey"
             keyPassword = "android"
         }
+        // The project's release key, held only as GitHub Actions secrets (scripts/setup-signing.sh).
+        if (releaseKeystore != null) {
+            create("release") {
+                storeFile = file(releaseKeystore)
+                storePassword = System.getenv("STRAWBERRY_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("STRAWBERRY_KEY_ALIAS")
+                keyPassword = System.getenv("STRAWBERRY_KEY_PASSWORD")
+                enableV1Signing = true
+                enableV2Signing = true
+                enableV3Signing = true
+                enableV4Signing = false
+            }
+        }
     }
 
     buildTypes {
@@ -33,6 +54,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
+            signingConfig = signingConfigs.findByName("release")
         }
     }
 
